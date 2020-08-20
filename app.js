@@ -2,7 +2,7 @@ const inquirer = require('inquirer');
 const Manager = require('./lib/Manager');
 const Engineer = require('./lib/Engineer');
 const Intern = require('./lib/Intern');
-const appendCard = require('./templates/appendCard');
+const appendCard = require('./lib/appendCard');
 
 //starting at neg1 so count matches index. need this to keep 3 members per html row.
 var employeeCount = -1;
@@ -59,6 +59,7 @@ const captureEmployeeDetails = (data) => {
             tempStore =[];
 
             let manager = new Manager(data.name,data.id,data.email,r.officeNumber);
+            console.log(manager);
 
             let appendMgr = new appendCard(manager,employeeCount);
             appendMgr.createManager();
