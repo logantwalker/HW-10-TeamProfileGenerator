@@ -1,24 +1,38 @@
+const fs = require('fs');
 const inquirer = require('inquirer');
 const Manager = require('./lib/Manager');
 const Engineer = require('./lib/Engineer');
 const Intern = require('./lib/Intern');
-const appendCard = require('./lib/appendCard');
+const createCard = require('./lib/createCard');
 
-//starting at neg1 so count matches index. need this to keep 3 members per html row.
-var employeeCount = -1;
+//helper to move fn data to .then()'s
 var tempStore = [];
 
-inquirer.prompt([{
-    type: 'confirm',
-    message: 'Would you like to add a new team member? ',
-    name: 'confirm'
-}]).then(r => {
-    if (r.confirm) {
-        employeeCount++;
-        captureEmployee();
-    }
-    return;
-}).catch(err => { console.log(err) });
+//list of html cards of team members + html template info
+const employeeList = [];
+//Head HTML Template
+fs.readFile('./templates/head.html','utf8', (err, data) => {
+    if (err) throw err;
+    employeeList.push(data)
+});
+
+const initPrompt = () => {
+    inquirer.prompt([{
+        type: 'confirm',
+        message: 'Would you like to add a new team member? ',
+        name: 'confirm'
+    }]).then(r => {
+        if (r.confirm) {
+
+            captureEmployee();
+        }
+        else {
+            constructHTML(employeeList);
+        }
+        return;
+    }).catch(err => { console.log(err) });
+}
+initPrompt();
 
 const captureEmployee = () => {
     inquirer.prompt([{
@@ -55,15 +69,12 @@ const captureEmployeeDetails = (data) => {
             message: 'Please input office number:',
             name: 'officeNumber'
         }]).then(r => {
-            data=tempStore[0];
-            tempStore =[];
+            data = tempStore[0];
+            tempStore = [];
 
-            let manager = new Manager(data.name,data.id,data.email,r.officeNumber);
-            console.log(manager);
-
-            let appendMgr = new appendCard(manager,employeeCount);
-            appendMgr.createManager();
-
+            let manager = new Manager(data.name, data.id, data.email, r.officeNumber);
+            employeeList.push(createCard.createManager(manager));
+            initPrompt();
         }).catch(err => { console.log(err) });
     }
     else if (data.role === 'Engineer') {
@@ -72,11 +83,12 @@ const captureEmployeeDetails = (data) => {
             message: 'Please input employee github username: ',
             name: 'github'
         }]).then(r => {
-            data=tempStore[0];
-            tempStore =[];
+            data = tempStore[0];
+            tempStore = [];
 
-            let eng = new Engineer(data.name,data.id,data.email,r.github);
-
+            let eng = new Engineer(data.name, data.id, data.email, r.github);
+            employeeList.push(createCard.createEngineer(eng));
+            initPrompt();
         }).catch(err => { console.log(err) });
     }
     else if (data.role === 'Intern') {
@@ -85,12 +97,38 @@ const captureEmployeeDetails = (data) => {
             message: "Please input employee's current school: ",
             name: 'school'
         }]).then(r => {
-            data=tempStore[0];
-            tempStore =[];
+            data = tempStore[0];
+            tempStore = [];
 
-            let intern = new Intern(data.name,data.id,data.email,r.school);
-
+            let intern = new Intern(data.name, data.id, data.email, r.school);
+            employeeList.push(createCard.createIntern(intern));
+            initPrompt();
 
         }).catch(err => { console.log(err) });
+    }
+}
+
+const constructHTML = (els) => {
+    fs.readFile('./templates/tail.html','utf8',(err,data)=>{
+        if (err) throw err;
+        els.push(data);
+        writeHTML(els);
+    })
+
+    const writeHTML = (arr) =>{
+        const writeStream = fs.createWriteStream('./output/team.html');
+        const pathName = writeStream.path;
+
+        arr.forEach(value => writeStream.write(`${value}\n`));
+
+        writeStream.on('finish', () => {
+            console.log(`wrote all the array data to file ${pathName}`);
+        });
+
+        writeStream.on('error', (err) => {
+            console.error(`There is an error writing the file ${pathName} => ${err}`)
+        });
+
+        writeStream.end();
     }
 }
